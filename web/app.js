@@ -7,6 +7,7 @@ import {setupWorkbench} from './workbench.js';
 import {openIconEditor} from './icon-editor.js';
 import {setupUpdateNotice} from './update-notice.js';
 import {openComponentPreview} from './component-preview.js';
+import {setupReminders} from './reminders.js';
 const compactStyle=document.createElement('link');compactStyle.rel='stylesheet';compactStyle.href='/compact.css';document.head.append(compactStyle);
 const $=id=>document.getElementById(id), clone=v=>JSON.parse(JSON.stringify(v));
 let scene=clone(defaultScene),selected='quota',status={},lastSuccess=0,history=[],future=[],dirty=false,loading=false,frame=new Uint8Array(1024),lastFrame='',drag=null,plugins=[...builtins];
@@ -14,7 +15,7 @@ const canvas=$('canvas'),ctx=canvas.getContext('2d');
 let screenColor=[102,175,255];
 function message(text,error=false){$('message').textContent=text;$('message').classList.toggle('error',error);}
 async function api(path,body,method=body===undefined?'GET':'POST'){
- const request=()=>fetch(path,{method,credentials:'same-origin',signal:AbortSignal.timeout(path==='/api/animation'?135000:path==='/api/frame'||path==='/api/refresh'||path==='/api/device-settings'?25000:8000),headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
+ const request=()=>fetch(path,{method,credentials:'same-origin',signal:AbortSignal.timeout(path==='/api/animation'||path==='/api/reminders/test'?135000:path==='/api/frame'||path==='/api/refresh'||path==='/api/device-settings'?25000:8000),headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
  let r=await request();
  // Renew a rotated companion session without reloading an unsaved canvas.
  // A 403 is rejected before any mutation, so one retry is safe.
@@ -124,6 +125,7 @@ setupDeviceSettings({api,message,getFrame:()=>frame,onScreenColor:color=>{screen
 setupAnimation({api,message,getFrame:()=>{render();return frame;},onUploaded:result=>{status.autoPush=false;status.lastPush=result.lastPush;statusView();}});
 setupWorkbench({selected:current,message,change:apply=>{const e=current();if(e){checkpoint();apply(e);safeChange();}}});
 void setupUpdateNotice({api,message});
+void setupReminders({api,message});
 await Promise.allSettled([loadPlugins(),(async()=>{try{const loaded=await api('/api/scene');if(loaded&&!dirty){scene=normalizeScene(loaded);prepareText(scene);selected=scene.elements[0]?.id;render();layers();inspector();}}catch(e){message('使用默认布局；保存后将同步到本地服务',true);}})()]);
 layers();inspector();render();
 function transferView(){let progress=$('transfer-progress');if(!progress){progress=document.createElement('progress');progress.id='transfer-progress';progress.max=100;progress.setAttribute('aria-label','设备上传进度');progress.style.width='100%';$('push-state').after(progress);}const p=status.transfer;progress.hidden=!(status.device?.busy&&p&&p.phase!=='done');if(!progress.hidden){const percent=Math.floor(p.completedBytes/p.totalBytes*100);progress.value=percent;$('push-state').textContent=p.phase==='verifying'?'文件已传完，正在确认设备模式…':`上传 ${percent}% · ${p.completedBytes} / ${p.totalBytes} 字节，请等待设备确认`;}}

@@ -451,6 +451,8 @@ do {
               !notice.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
             throw fail("invalid_notice", "更新提示需要单行文字，最多255字节，不会自动截断。")
         }
+        let units = notice.unicodeScalars.reduce(0) { $0 + ($1.value <= 127 ? 15 : 32) }
+        guard units <= 480 else { throw fail("invalid_notice", "提示过长：中文最多15字，大写英文最多32字；混排按比例估算，不会自动截断。") }
     }
     switch args.first {
     case "quota" where args.count == 1: emit(try quota())

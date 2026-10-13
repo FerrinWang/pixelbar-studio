@@ -5,10 +5,15 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createStudio} from '../server/server.js';
 import {validateUpdateNotice} from '../server/update-notice.js';
-test('notice has no artificial character limit; preserves padding and checks protocol bytes',()=>{
-  assert.equal(validateUpdateNotice('█'.repeat(20)+'测试'),'█'.repeat(20)+'测试');
+test('notice enforces 15 wide or 32 ASCII characters with proportional mixed budget',()=>{
+  assert.equal(validateUpdateNotice('中'.repeat(15)),'中'.repeat(15));
+  assert.equal(validateUpdateNotice('A'.repeat(32)).length,32);
+  assert.throws(()=>validateUpdateNotice('中'.repeat(16)),/15/);
+  assert.throws(()=>validateUpdateNotice('A'.repeat(33)),/32/);
+  assert.equal(validateUpdateNotice('中'.repeat(7)+'A'.repeat(17)).length,24);
+  assert.throws(()=>validateUpdateNotice('中'.repeat(8)+'A'.repeat(17)),/混排/);
   assert.equal(validateUpdateNotice('  更新中  '),'  更新中  ');
-  assert.equal(validateUpdateNotice('a'.repeat(255)).length,255);
+  assert.throws(()=>validateUpdateNotice('a'.repeat(255)),/32/);
   assert.throws(()=>validateUpdateNotice('中'.repeat(86)),/255/);
   assert.throws(()=>validateUpdateNotice(' \n '));
   assert.throws(()=>validateUpdateNotice(''));
