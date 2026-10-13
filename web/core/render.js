@@ -46,7 +46,7 @@ export function measureElement(e,data={}){
  else if(['rectangle','sparkline','progress'].includes(e.type))size={width:inner.width,height:e.type==='progress'?Math.max(5,inner.height):inner.height};
  else if(plugin){const ctx=new PixelContext();const probe={...inner,x:0,y:0,height:32};ctx.clip={x:0,y:0,width:probe.width,height:32};plugin.render(ctx,probe,{...data,now:data.now??Date.now()});let right=0,bottom=0;for(let y=0;y<32;y++)for(let x=0;x<probe.width;x++)if(ctx.pixels[y*256+x]){right=Math.max(right,x+1);bottom=Math.max(bottom,y+1);}size={width:right||inner.width,height:bottom||inner.height};}
  else size={width:inner.width,height:inner.height};
- const padding=p.frameEnabled?4:0;return {width:Math.max(1,Math.ceil(size.width)+padding),height:Math.max(1,Math.ceil(size.height)+padding)};
+ const padding=p.frameEnabled?4:0;return {width:Math.max(1,Math.ceil(size.width)+padding),height:Math.max(1,Math.ceil(size.height)+padding),...(size.warning?{warning:size.warning}:{})};
 }
 export function fitElement(e,data={}){const size=measureElement(e,data);e.width=Math.min(WIDTH,size.width);e.height=Math.min(HEIGHT,size.height);e.x=Math.min(e.x,WIDTH-e.width);e.y=Math.min(e.y,HEIGHT-e.height);const p=e.props;if(e.type==='unicode-text'&&(!p.fontId||p.fontId==='legacy')&&Array.isArray(p.pixels))p.rasterKey=JSON.stringify([String(p.text??'中文文字').slice(0,256),Math.max(8,Math.min(32,Math.round(Number(p.fontSize)||12))),Math.max(1,Math.min(255,Number(p.threshold)||96)),e.width,e.height]);return {clipped:size.width>WIDTH||size.height>HEIGHT,...size};}
 function bar(ctx,x,y,w,h,value){ctx.strokeRect(x,y,w,h);ctx.fillRect(x+2,y+2,Math.floor(Math.max(0,w-4)*clamp(value,0,100)/100),Math.max(0,h-4));}

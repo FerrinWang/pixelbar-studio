@@ -1,4 +1,4 @@
-import {builtins,registerPlugin,renderFrame,renderPlayback,normalizeScene,defaultScene,clamp,fitElement} from './core/render.js';
+import {builtins,registerPlugin,renderFrame,renderPlayback,normalizeScene,defaultScene,clamp,fitElement,measureElement} from './core/render.js';
 import {setupDeviceSettings} from './device-settings.js';
 import {prepareText} from './text-raster.js';
 import {setupAnimation} from './animation.js';
@@ -69,9 +69,10 @@ function inspector(){
   if(name==='pixelScale'){p.min=1;p.max=3;}if(name==='lineGap'){p.min=0;p.max=8;}
   if(e.type==='bilibili-fans'&&(name==='uid'||name==='label'))p.preview=v=>{e.props[name]=v;dirty=true;render();statusView();};
   if(name==='text'&&isText)p.preview=v=>{e.props.text=v;prepareText(scene);dirty=true;render();statusView();const hint=root.querySelector('.text-metrics'),m=e.props.textMetrics;if(hint&&m){hint.textContent=`文字需要 ${m.width} × ${m.height} 像素${m.clipped?' · 超出元素边界，请适应尺寸':''}${m.missing?.length?' · 缺字：'+m.missing.join(''):''}`;hint.classList.toggle('warning',m.clipped||!!m.missing?.length);}};
-  field(root,name,p.label||p.title||name,p.type,name==='fontId'&&legacy?'legacy':e.props[name]??p.default,v=>{checkpoint();e.props[name]=p.type==='number'?clamp(v,p.min??-Infinity,p.max??Infinity):v;if(e.type==='bilibili-fans'&&name==='sizePreset'||e.type==='codex-quota'&&/^(primary|secondary)(Countdown|Date|Time)$/.test(name))fitCurrent(e);safeChange();},p);
+  field(root,name,p.label||p.title||name,p.type,e.type==='codex-reset'&&name==='showBar'&&!Object.hasOwn(e.props,'showBar')?false:name==='fontId'&&legacy?'legacy':e.props[name]??p.default,v=>{checkpoint();e.props[name]=p.type==='number'?clamp(v,p.min??-Infinity,p.max??Infinity):v;if(e.type==='bilibili-fans'&&name==='sizePreset'||e.type==='codex-quota'&&/^(primary|secondary)(Countdown|Date|Time)$/.test(name))fitCurrent(e);safeChange();},p);
  }
  if(e.type==='codex-quota'){const hint=document.createElement('p');hint.className='text-metrics';hint.textContent='5H / WK 的倒计时、日期、时间分别开关；日期与时间使用本机时区，倒计时精确到分钟。缺少真实重置时间时显示 --；开启全部字段再加边框可能超过屏幕高度。';root.append(hint);}
+ if(e.type==='codex-reset'){const hint=document.createElement('p');hint.className='text-metrics';const size=measureElement(e,{quota:status.quota,now:Date.now()});hint.textContent='文字与进度条同排，固定总宽度含边框。文字多时条变短，文字少时条变长；进度按重置周期剩余时间，时长未知显示 ?。旧组件开启进度条或修改总宽度后使用新单排布局。'+(size.warning||'');hint.classList.toggle('error',!!size.warning);root.append(hint);}
  if(isText&&!tiny){
   const metrics=e.props.textMetrics,hint=document.createElement('p');hint.className='text-metrics';
   hint.textContent=legacy?'原有文字点阵已保留。切换字体后使用新的原生点阵渲染。':metrics?`文字需要 ${metrics.width} × ${metrics.height} 像素${metrics.clipped?' · 超出元素边界，请适应尺寸':''}${metrics.missing?.length?' · 缺字：'+metrics.missing.join(''):''}`:'选择字体后按原生像素绘制。';

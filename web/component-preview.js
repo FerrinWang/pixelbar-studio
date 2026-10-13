@@ -25,7 +25,7 @@ export function openComponentPreview({manifest,schema,elements,getData,onAdd,x=0
       const bytes=renderFrame({schemaVersion:1,elements:[{...draft,x:0,y:0}]},data),ctx=canvas.getContext('2d'),pixels=ctx.createImageData(256,32);
       for(let yy=0;yy<32;yy++)for(let xx=0;xx<256;xx++){const on=(bytes[(yy>>3)*256+xx]>>(yy&7))&1,i=(yy*256+xx)*4;pixels.data.set(on?[140,223,102,255]:[9,19,21,255],i);}ctx.putImageData(pixels,0,0);
       const collision=elements.some(other=>overlaps(draft,other));
-      warning.textContent=[size?.clipped?'内容超过屏幕，部分会被裁切；请减少字段或字号。':'',collision?'放置位置与已有素材重叠；可调整 X / Y，或明确确认叠放。':'',draft.type==='image'&&!image?'请先导入图片。':''].filter(Boolean).join(' ');
+      warning.textContent=[size?.clipped?'内容超过屏幕，部分会被裁切；请减少字段或字号。':'',size?.warning||'',collision?'放置位置与已有素材重叠；可调整 X / Y，或明确确认叠放。':'',draft.type==='image'&&!image?'请先导入图片。':''].filter(Boolean).join(' ');
       add.textContent=collision?'确认添加（存在重叠）':'添加到画布';add.disabled=draft.type==='image'&&!image;
       dimensions.textContent=`内容框 ${draft.width} × ${draft.height} · 放置位置 ${draft.x}, ${draft.y} · 预览仅显示本组件`;
       for(const [input,key] of coordinates){if(document.activeElement!==input)input.value=draft[key];input.disabled=(key==='width'||key==='height')&&draft.props.autoFit===true;}
