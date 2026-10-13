@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pixelbar-studio:scene:v1",
+  "title": "PixelBar Studio Scene v1",
+  "type": "object",
+  "required": ["schemaVersion", "width", "height", "elements"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "width": {"const": 256},
+    "height": {"const": 32},
+    "elements": {
+      "type": "array", "maxItems": 128,
+      "items": {
+        "type": "object", "required": ["id", "type", "x", "y", "width", "height", "props"],
+        "properties": {
+          "id": {"type": "string", "maxLength": 128},
+          "type": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+          "x": {"type": "integer", "minimum": 0, "maximum": 255},
+          "y": {"type": "integer", "minimum": 0, "maximum": 31},
+          "width": {"type": "integer", "minimum": 1, "maximum": 256},
+          "height": {"type": "integer", "minimum": 1, "maximum": 32},
+          "props": {"type": "object"}
+        }
+      }
+    }
+  }
+}

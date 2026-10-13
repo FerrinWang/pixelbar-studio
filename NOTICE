@@ -1,0 +1,22 @@
+PixelBar Studio is an independent community project, not an official EDIFIER
+or OpenAI product. Product names are used only to identify interoperability.
+No TempoHub binary, source, extracted bytecode, artwork or account credentials
+are redistributed. Device communication is independently implemented.
+
+The macOS companion distribution includes Node.js. Node.js and its included
+dependencies retain their respective licenses. Complete license text is
+provided in Contents/Resources/runtime/NODE-LICENSE.txt.
+Source: https://github.com/nodejs/node/blob/v24.21.0/LICENSE
+
+Quota retrieval invokes the user's separately installed Codex app-server;
+Codex itself is not bundled. This reads the Codex rate-limit bucket, not all
+ChatGPT conversations, subscription message counts, or API billing.
+
+Bundled bitmap font data is converted from official 2026.09.25 BDF releases
+of Fusion Pixel Font (TakWolf, copyright 2022) and Ark Pixel Font (TakWolf,
+copyright 2021). Font data remains under SIL OFL 1.1, NOT the project's MIT
+license. Complete upstream and dependency licenses are retained under
+web/fonts/licenses (Contents/Resources/studio/web/fonts/licenses in the app).
+Sources: https://github.com/TakWolf/fusion-pixel-font
+         https://github.com/TakWolf/ark-pixel-font
+See docs/FONTS.md for provenance and reproducible conversion.

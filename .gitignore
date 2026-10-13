@@ -1,0 +1,9 @@
+node_modules/
+.build-cache/
+dist/
+companion/pixelbar-engine
+companion/engine
+.DS_Store
+*.log
+.env
+state/

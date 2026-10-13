@@ -1,0 +1,10 @@
+{
+  "name": "pixelbar-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first extensible editor for Edifier PixelBar",
+  "license": "MIT",
+  "engines": {"node": ">=20.11"},
+  "scripts": {"start": "node server/server.js", "test": "node --test tests/*.test.js", "build:engine": "node scripts/build-engine.js", "build:app": "node scripts/build-app.js"}
+}
