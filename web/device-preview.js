@@ -1,30 +1,36 @@
 import {estimateColor,validateCalibration,rgbHex,deltaE76} from './core/color-calibration.js';
 
-export function setupDevicePreview({panel,controls,getFrame,message}){
+export function setupDevicePreview({panel,controls,getFrame,message,api}){
  const storageKey='pixelbar-appearance-calibration-v1';let profile={version:1,enabled:true,samples:[]},lastPhoto=null,paused=false;
  try{const saved=localStorage.getItem(storageKey);if(saved)profile=validateCalibration(JSON.parse(saved));}catch{message('旧校准配置无法读取，预览使用原RGB；未改设备设置',true);}
  const section=document.createElement('section');section.className='device-preview';
- section.innerHTML=`<h2>屏幕与灯光预览</h2><p class="muted">实时草稿 · 不操作设备。灯效为示意，不是固件精确模拟；应用设备设置后才发送原始 RGB。</p>
- <canvas class="device-simulation" width="768" height="160" aria-label="屏幕与机身灯光示意预览"></canvas>
+ section.innerHTML=`<h2>画布颜色预览</h2><p class="muted">与画布编辑相同的256×32平面预览。校准只改变这里的显示颜色，不修改发送RGB。</p>
+ <canvas class="device-simulation" width="256" height="32" aria-label="256×32平面画布颜色预览"></canvas>
+ <div class="lighting-flat-preview" aria-label="灯光颜色示意"></div>
  <div class="preview-colors"></div><label><input type="checkbox" class="preview-paused">暂停灯效动画</label>
- <details class="calibration-editor"><summary>照片颜色校准（仅预览）</summary>
- <p class="muted">照片受曝光、白平衡和环境光影响。此功能估计外观，不是仪器校色；不修改发送RGB。屏幕和机身分别建样本。配置存于当前浏览器，可导出备份；照片不会保存或上传。</p>
- <label><input type="checkbox" class="calibration-enabled">启用外观估计</label>
- <div class="calibration-fields"><label>校准对象<select class="calibration-target"><option value="screen">像素屏</option><option value="lighting">机身灯光</option></select></label><label>设备设置 RGB<input type="color" class="calibration-input" value="#ff0000"></label><label>照片观测 RGB<input type="color" class="calibration-observed" value="#ff0000"></label></div>
- <p class="muted">先手动设置设备并拍照。输入拍照时实际发送的RGB，不要把未应用的草稿当成设备值。上传后点击均匀发光区域，取周围5×5像素平均；避开反光和过曝白点。</p>
- <label>选择照片<input class="calibration-photo" type="file" accept="image/*"></label><canvas class="calibration-photo-canvas" hidden aria-label="点击照片取色"></canvas>
+ <details class="calibration-editor" open><summary>手动颜色校准（仅预览）</summary>
+ <p class="muted">配对两个颜色：发给设备的RGB → 你肉眼看到的近似颜色。添加几组之后，其他颜色由样本估计，让电脑预览接近实屏。无需照片；屏幕和机身分别校准，不修改发送RGB。</p>
+ <label><input type="checkbox" class="calibration-enabled">启用外观估计</label><button type="button" class="calibration-new">新增校准项目（读取设备当前RGB）</button>
+ <div class="calibration-fields"><label>校准对象<select class="calibration-target"><option value="screen">像素屏</option><option value="lighting">机身灯光</option></select></label><label>发给设备的颜色<input type="color" class="calibration-input" value="#ff0000"></label><label>RGB值<input type="text" class="calibration-input-hex" value="#FF0000" pattern="#[0-9a-fA-F]{6}" maxlength="7" spellcheck="false"></label><label>肉眼看到的近似颜色<input type="color" class="calibration-observed" value="#ff0000"></label><label>近似颜色值<input type="text" class="calibration-observed-hex" value="#FF0000" pattern="#[0-9a-fA-F]{6}" maxlength="7" spellcheck="false"></label></div>
+ <p class="muted">例如：设备设置淡红色，但实屏偏蓝，就在右侧选一个你觉得接近实屏的颜色。可以先添加色差最明显的几组，后续继续补充。</p>
+ <details class="calibration-photo-optional"><summary>可选：从照片取色</summary><p class="muted">照片只作为选色辅助。点击均匀发光区域取周围5×5像素平均；曝光、白平衡和反光都会影响结果。</p>
+ <label>选择照片<input class="calibration-photo" type="file" accept="image/*"></label><canvas class="calibration-photo-canvas" hidden aria-label="点击照片取色"></canvas></details>
  <p class="calibration-measure muted" role="status"></p><div class="actions"><button type="button" class="calibration-add">保存这个颜色样本</button><button type="button" class="calibration-export">导出校准</button><button type="button" class="calibration-import">导入校准</button><button type="button" class="calibration-clear">清空校准</button></div>
  <input class="calibration-import-file" type="file" accept="application/json,.json" hidden><div class="calibration-samples"></div>
- <p class="muted">建议首轮：#FF0000、#00FF00、#0000FF、#FFFFFF、#808080、#FFFF00、#00FFFF、#FF00FF；保持同机位、固定曝光/白平衡、环境光一致。未知颜色由样本插值，样本少时可靠性有限。屏幕纯色采样需使用足够大的发光区域，机身样本建议纯色、固定亮度100%。</p></details>`;
+ <p class="muted">建议补充红、绿、蓝、白、灰，以及偏色明显的淡色。比较时尽量保持环境光、电脑屏幕设置和设备亮度一致。样本只存在此浏览器，可导出备份；这是近似外观校准，不是仪器测色。</p></details>`;
  panel.prepend(section);
  const find=selector=>section.querySelector(selector),canvas=find('.device-simulation'),ctx=canvas.getContext('2d'),photo=find('.calibration-photo-canvas'),photoCtx=photo.getContext('2d',{willReadFrequently:true});
  const enabled=find('.calibration-enabled'),target=find('.calibration-target'),input=find('.calibration-input'),observed=find('.calibration-observed'),samples=find('.calibration-samples');enabled.checked=profile.enabled;
+ let deviceColors={};
+ function useDeviceSettings(data){for(const key of ['screen','lighting'])if(/^#[0-9a-f]{6}$/i.test(data?.[key]?.color))deviceColors[key]=data[key].color;const color=deviceColors[target.value];if(color){input.value=color;measure();}}
  function persist(next){try{localStorage.setItem(storageKey,JSON.stringify(next));profile=next;enabled.checked=profile.enabled;renderSamples();}catch(e){message('校准保存失败：'+e.message,true);}}
- function measure(){find('.calibration-measure').textContent=`RGB ${input.value.toUpperCase()} → 照片 ${observed.value.toUpperCase()} · 照片 sRGB ΔE76 ${deltaE76(input.value,observed.value).toFixed(1)}（不是仪器测得的设备色差）`;}
+ function measure(){find('.calibration-input-hex').value=input.value.toUpperCase();find('.calibration-observed-hex').value=observed.value.toUpperCase();find('.calibration-measure').textContent=`发送 ${input.value.toUpperCase()} → 实屏近似 ${observed.value.toUpperCase()} · 配对颜色差异 ΔE76 ${deltaE76(input.value,observed.value).toFixed(1)}（仅供参考）`;}
+ for(const [selector,color] of [['.calibration-input-hex',input],['.calibration-observed-hex',observed]]){const field=find(selector);field.oninput=()=>{const valid=/^#[0-9a-f]{6}$/i.test(field.value);field.setCustomValidity(valid?'':'请输入 #RRGGBB');if(valid){color.value=field.value;measure();}};}
  function renderSamples(){samples.replaceChildren();for(const [i,s] of profile.samples.entries()){const row=document.createElement('div');row.className='calibration-sample';const text=document.createElement('span');text.textContent=`${s.target==='screen'?'屏幕':'机身'} · ${s.input} → ${s.observed}`;for(const color of [s.input,s.observed]){const swatch=document.createElement('span');swatch.className='color-swatch';swatch.style.background=color;swatch.title=color;row.append(swatch);}const remove=document.createElement('button');remove.type='button';remove.textContent='删除';remove.onclick=()=>persist({...profile,samples:profile.samples.filter((_,index)=>index!==i)});row.append(text,remove);samples.append(row);}if(!profile.samples.length)samples.textContent='还没有颜色样本，预览使用原始 RGB。';}
  enabled.onchange=()=>persist({...profile,enabled:enabled.checked});find('.preview-paused').onchange=e=>paused=e.target.checked;
- target.onchange=()=>{input.value=controls[target.value==='screen'?'screen-color':'lighting-color'].value;measure();};input.oninput=measure;observed.oninput=measure;
- find('.calibration-add').onclick=()=>{try{const next={...profile,samples:profile.samples.filter(s=>!(s.target===target.value&&s.input===input.value.toUpperCase()))};next.samples.push({target:target.value,input:input.value,observed:observed.value});persist(validateCalibration(next));measure();message('颜色样本已保存，仅影响此浏览器预览，发送RGB未变');}catch(e){message(e.message,true);}};
+ target.onchange=()=>{if(deviceColors[target.value])input.value=deviceColors[target.value];measure();};input.oninput=measure;observed.oninput=measure;
+ find('.calibration-new').onclick=async()=>{const button=find('.calibration-new');button.disabled=true;try{const data=await api('/api/device-settings');const color=data?.[target.value]?.color;if(!/^#[0-9a-f]{6}$/i.test(color))throw new Error('当前对象颜色无法读回，请先连接设备');useDeviceSettings(data);observed.value=color;for(const selector of ['.calibration-input-hex','.calibration-observed-hex'])find(selector).setCustomValidity('');measure();message('已填入设备当前RGB，只需选择肉眼看到的近似颜色');}catch(e){message('新建校准项目失败：'+e.message,true);}finally{button.disabled=false;}};
+ find('.calibration-add').onclick=()=>{try{for(const selector of ['.calibration-input-hex','.calibration-observed-hex']){const field=find(selector);if(!field.reportValidity())return;}const next={...profile,samples:profile.samples.filter(s=>!(s.target===target.value&&s.input===input.value.toUpperCase()))};next.samples.push({target:target.value,input:input.value,observed:observed.value});persist(validateCalibration(next));measure();message('颜色样本已保存，仅影响此浏览器预览，发送RGB未变');}catch(e){message(e.message,true);}};
  find('.calibration-clear').onclick=()=>{if(confirm('清空全部屏幕/机身颜色样本？不会改变设备RGB。'))persist({version:1,enabled:true,samples:[]});};
  find('.calibration-export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(profile,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='pixelbar-color-calibration.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
  const imported=find('.calibration-import-file');find('.calibration-import').onclick=()=>imported.click();imported.onchange=async()=>{try{const file=imported.files[0];if(!file)return;if(file.size>65536)throw new Error('校准文件不能超过64KB');const next=validateCalibration(JSON.parse(await file.text()));if(profile.samples.length&&!confirm('导入会替换当前校准样本，是否继续？'))return;persist(next);message('已导入预览校准，设备RGB未改');}catch(e){message(e.message,true);}finally{imported.value='';}};
@@ -32,10 +38,11 @@ export function setupDevicePreview({panel,controls,getFrame,message}){
  photo.onclick=e=>{if(!lastPhoto)return;const rect=photo.getBoundingClientRect(),x=Math.min(photo.width-1,Math.max(0,Math.floor((e.clientX-rect.left)/rect.width*photo.width))),y=Math.min(photo.height-1,Math.max(0,Math.floor((e.clientY-rect.top)/rect.height*photo.height)));const left=Math.max(0,x-2),top=Math.max(0,y-2),w=Math.min(photo.width-left,5),h=Math.min(photo.height-top,5),pixels=photoCtx.getImageData(left,top,w,h).data,sum=[0,0,0];for(let i=0;i<pixels.length;i+=4)sum.forEach((_,c)=>sum[c]+=pixels[i+c]);observed.value=rgbHex(sum.map(v=>v/(w*h)));measure();};
  function draw(now){if(!section.isConnected)return;requestAnimationFrame(draw);if(section.closest('[hidden]')||document.hidden)return;
   const rawScreen=controls['screen-color'].value,rawLight=controls['lighting-color'].value,screenColor=estimateColor(rawScreen,'screen',profile),light=estimateColor(rawLight,'lighting',profile),effect=controls['lighting-effect'].value,brightness=Number(controls['lighting-brightness'].value)/100,on=controls['lighting-enabled'].checked,time=paused?0:now/1000*(Number(controls['lighting-speed'].value)||8)/8;
-  ctx.fillStyle='#080d13';ctx.fillRect(0,0,768,160);ctx.fillStyle='#1b242e';ctx.fillRect(12,22,744,116);ctx.fillStyle='#020607';ctx.fillRect(20,30,728,82);
-  const frame=getFrame?.();if(frame?.length===1024){ctx.fillStyle=screenColor;for(let y=0;y<32;y++)for(let x=0;x<256;x++)if((frame[(y>>3)*256+x]>>(y&7))&1)ctx.fillRect(26+x*2.8,35+y*2.2,2.2,1.7);}else{ctx.fillStyle=screenColor;ctx.font='18px monospace';ctx.fillText('PIXELBAR / SCREEN PREVIEW',36,78);}
-  for(let x=0;x<720;x+=4){let alpha=on?brightness:0,color=light;if(effect==='breathing')alpha*=.15+.85*(Math.sin(time*2)+1)/2;if(effect==='tide')alpha*=.15+.85*(Math.sin(time*2-x/120)+1)/2;if(['rainbow','shadow','dynamic'].includes(effect)){const phase=((x/720+time/7)%1+1)%1;const channels=[0,2/3,1/3].map(offset=>Math.round(255*(.5+.5*Math.cos((phase+offset)*Math.PI*2))));color=estimateColor(rgbHex(channels),'lighting',profile);if(effect!=='rainbow')alpha*=.15+.85*(Math.sin(time*2-x/60)+1)/2;}ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.fillRect(24+x,121,4,5);ctx.fillRect(24+x,130,4,2);ctx.globalAlpha=1;}
+  const rgb=[1,3,5].map(i=>parseInt(screenColor.slice(i,i+2),16)),frame=getFrame?.(),image=ctx.createImageData(256,32);
+  for(let y=0;y<32;y++)for(let x=0;x<256;x++){const lit=frame?.length===1024&&((frame[(y>>3)*256+x]>>(y&7))&1),i=(y*256+x)*4;image.data[i]=lit?rgb[0]:9;image.data[i+1]=lit?rgb[1]:19;image.data[i+2]=lit?rgb[2]:21;image.data[i+3]=255;}ctx.putImageData(image,0,0);
+  const strip=find('.lighting-flat-preview');strip.style.opacity=on?String(brightness*(effect==='breathing'?.15+.85*(Math.sin(time*2)+1)/2:1)):'0';strip.style.background=['rainbow','shadow','dynamic'].includes(effect)?`linear-gradient(90deg,${['#FF0000','#00FF00','#0000FF'].map(c=>estimateColor(c,'lighting',profile)).join(',')})`:light;strip.style.transform=effect==='tide'?`scaleX(${.6+.4*(Math.sin(time*2)+1)/2})`:'none';
   find('.preview-colors').textContent=`屏幕：发送 ${rawScreen.toUpperCase()} → 外观估计 ${screenColor}　机身纯色：发送 ${rawLight.toUpperCase()} → 外观估计 ${light}${['solid','breathing'].includes(effect)?'':'（当前灯效由固件生成配色，RGB输入不适用）'} · ${profile.enabled?'已启用':'已停用'}校准`;
  }
  renderSamples();measure();requestAnimationFrame(draw);
+ return {useDeviceSettings};
 }
