@@ -1,4 +1,5 @@
-export async function setupDeviceSettings({api,message,onScreenColor}) {
+import {setupDevicePreview} from './device-preview.js';
+export async function setupDeviceSettings({api,message,onScreenColor,getFrame}) {
  const panel=document.createElement('section');panel.className='settings-panel';
  const title=document.createElement('div');title.className='eyebrow';title.textContent='DEVICE SETTINGS / 设备设置';panel.append(title);
  const rows=document.createElement('div');rows.className='settings-rows';panel.append(rows);
@@ -13,6 +14,7 @@ export async function setupDeviceSettings({api,message,onScreenColor}) {
  const speed=control(lighting,'lighting-speed','速率','number',8);speed.min=1;speed.max=10;
  const state=document.createElement('span');state.className='muted';lighting.append(state);
  const save=document.createElement('button');save.textContent='应用设备设置';save.disabled=true;panel.append(save);
+ setupDevicePreview({panel,controls,getFrame,message});
  let settings={screen:{supported:false},lighting:{supported:false}};
  function capabilities(){const effect=controls['lighting-effect'].value;controls['lighting-color'].disabled=settings.lighting?.supported!==true||!['solid','breathing'].includes(effect);controls['lighting-speed'].disabled=settings.lighting?.supported!==true||!['breathing','tide'].includes(effect);}
  controls['lighting-effect'].onchange=capabilities;

@@ -120,7 +120,7 @@ document.querySelector('.palette .note').textContent='原生像素 · 本地运�
 document.querySelector('.inspector .note').textContent='中英文均可切换像素字体；建议使用原生 10 / 12 px。超出边界时可点「适应文字尺寸」。设备实际上传仍可能显示提示。';
 try{await loadBitmapFonts();}catch(e){message(e.message,true);}
 palette();layers();inspector();render();
-setupDeviceSettings({api,message,onScreenColor:color=>{screenColor=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));render();}});
+setupDeviceSettings({api,message,getFrame:()=>frame,onScreenColor:color=>{screenColor=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));render();}});
 setupAnimation({api,message,getFrame:()=>{render();return frame;},onUploaded:result=>{status.autoPush=false;status.lastPush=result.lastPush;statusView();}});
 setupWorkbench({selected:current,message,change:apply=>{const e=current();if(e){checkpoint();apply(e);safeChange();}}});
 void setupUpdateNotice({api,message});
